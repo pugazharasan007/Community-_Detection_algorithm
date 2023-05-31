@@ -1,0 +1,52 @@
+import os
+import networkx as nx
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.decomposition import LatentDirichletAllocation
+from networkx.algorithms import community
+import matplotlib.pyplot as plt
+
+# Step 1: Load the text dataset
+with open('/content/group.csv', 'r') as file:
+    documents = file.readlines()
+
+# Step 2: Preprocess the text data
+# Assuming you have already preprocessed the text data by removing stopwords, punctuation, etc.
+# If not, you can implement preprocessing steps here
+
+# Step 3: Create a document-term matrix
+vectorizer = CountVectorizer()
+X = vectorizer.fit_transform(documents)
+
+# Step 4: Apply LDA for topic modeling
+lda = LatentDirichletAllocation(n_components=5)  # Assuming 5 topics
+lda.fit(X)
+
+# Step 5: Extract topic distributions for documents
+topic_dist = lda.transform(X)
+topic_labels = topic_dist.argmax(axis=1)
+
+# Step 6: Create a graph representation of the documents
+G = nx.Graph()
+for i, document in enumerate(documents):
+    G.add_node(i, text=document, topic=topic_labels[i])
+
+# Step 7: Apply the Girvan-Newman algorithm for community detection
+comp = community.girvan_newman(G)
+communities = tuple(sorted(c) for c in next(comp))
+
+# Step 8: Visualize the graph with community colors
+pos = nx.spring_layout(G)
+
+# Draw nodes with different community colors
+node_colors = [idx for idx, comm in enumerate(communities) for _ in comm]
+nx.draw_networkx_nodes(G, pos, node_color=node_colors, cmap='viridis', node_size=1000)
+
+# Draw edges
+nx.draw_networkx_edges(G, pos, alpha=0.5)
+
+# Draw node labels
+nx.draw_networkx_labels(G, pos, font_color='white')
+
+# Show the plot
+plt.axis('off')
+plt.show()
