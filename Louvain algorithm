@@ -1,0 +1,54 @@
+import os
+import networkx as nx
+import matplotlib.cm as cm
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.decomposition import LatentDirichletAllocation
+from community import community_louvain
+import matplotlib.pyplot as plt
+
+
+# Step 1: Load the text dataset
+
+with open('/content/group.csv', 'r') as file:
+    documents = file.readlines()
+
+# Step 2: Preprocess the text data
+
+# Step 3: Create a document-term matrix
+vectorizer = CountVectorizer()
+X = vectorizer.fit_transform(documents)
+
+# Step 4: Apply LDA for topic modeling
+lda = LatentDirichletAllocation(n_components=5)  # Assuming 5 topics
+lda.fit(X)
+
+# Step 5: Extract topic distributions for documents
+topic_dist = lda.transform(X)
+topic_labels = topic_dist.argmax(axis=1)
+
+# Step 6: Create a graph representation of the documents
+G = nx.Graph()
+for i, document in enumerate(documents):
+    G.add_node(i, text=document, topic=topic_labels[i])
+
+# Step 7: Apply the Louvain algorithm for community detection
+partition = community_louvain.best_partition(G)
+# Step 8: Visualize the graph with community colors
+pos = nx.spring_layout(G)
+    # color the nodes according to their partition
+cmap = cm.get_cmap('viridis', max(partition.values()) + 1)
+nx.draw_networkx_nodes(G, pos, partition.keys(), node_size=500, 
+                           cmap=cmap, node_color=list(partition.values()))
+nx.draw_networkx_edges(G, pos, alpha=0.5)
+
+# Get unique community labels
+community_labels = set(partition.values())
+
+
+
+# Draw node labels
+nx.draw_networkx_labels(G, pos, font_color='white')
+
+# Show the plot
+plt.axis('on')
+plt.show()
